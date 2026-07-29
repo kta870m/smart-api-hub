@@ -7,11 +7,11 @@ export class CrudController {
         try {
             const resourceParam = req.params.resource;
             const resource = Array.isArray(resourceParam) ? resourceParam[0] : resourceParam;
-            const { _field } = req.query;
+            const { _fields } = req.query;
 
             let fields: string[] | undefined = undefined;
-            if (typeof _field == 'string') {
-                fields = _field.split(',').map((f) => f.trim());
+            if (typeof _fields === 'string') {
+                fields = _fields.split(',').map((f) => f.trim());
             }
 
             const data = await crudService.findAll(resource, fields);
