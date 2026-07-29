@@ -23,7 +23,7 @@ class SchemaService {
     private schema : SchemaDef | null = null;
 
     public getSchema(): SchemaDef {
-        if(this.schema){
+        if(!this.schema){
             const schemaPath = path.resolve(process.cwd(), 'schema.json');
             if(!fs.existsSync(schemaPath)){
                 throw new Error("File schema.json không tồn tại");
