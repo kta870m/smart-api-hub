@@ -1,0 +1,37 @@
+{
+  "tables": [
+    {
+      "name": "users",
+      "columns": [
+        { "name": "id", "type": "uuid", "primary": true, "default": "gen_random_uuid()" },
+        { "name": "email", "type": "string", "unique": true, "nullable": false },
+        { "name": "password", "type": "string", "nullable": false },
+        { "name": "role", "type": "enum", "values": ["admin", "user"], "default": "'user'", "nullable": false },
+        { "name": "created_at", "type": "timestamp", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "timestamp", "default": "CURRENT_TIMESTAMP" }
+      ]
+    },
+    {
+      "name": "categories",
+      "columns": [
+        { "name": "id", "type": "uuid", "primary": true, "default": "gen_random_uuid()" },
+        { "name": "name", "type": "string", "nullable": false },
+        { "name": "description", "type": "text", "nullable": true },
+        { "name": "created_at", "type": "timestamp", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "timestamp", "default": "CURRENT_TIMESTAMP" }
+      ]
+    },
+    {
+      "name": "products",
+      "columns": [
+        { "name": "id", "type": "uuid", "primary": true, "default": "gen_random_uuid()" },
+        { "name": "title", "type": "string", "nullable": false },
+        { "name": "price", "type": "number", "nullable": false },
+        { "name": "user_id", "type": "uuid", "foreignKey": { "table": "users", "column": "id", "onDelete": "CASCADE" } },
+        { "name": "category_id", "type": "uuid", "foreignKey": { "table": "categories", "column": "id", "onDelete": "SET NULL" } },
+        { "name": "created_at", "type": "timestamp", "default": "CURRENT_TIMESTAMP" },
+        { "name": "updated_at", "type": "timestamp", "default": "CURRENT_TIMESTAMP" }
+      ]
+    }
+  ]
+}

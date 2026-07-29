@@ -1,0 +1,16 @@
+{
+  "watch": ["src"],
+  "ext": "ts,json",
+  "ignore": [
+    "node_modules",
+    "dist",
+    "*.test.ts",
+    "logs/*"
+  ],
+  "exec": "ts-node ./src/index.ts",
+  "delay": "1000",
+  "env": {
+    "NODE_ENV": "development",
+    "PORT": "3000"
+  }
+}
