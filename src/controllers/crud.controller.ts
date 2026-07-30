@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { crudService } from "../services/crud.service";
+import { crudService, QueryOptions } from "../services/crud.service";
 import { error } from "node:console";
 
 export class CrudController {
@@ -7,16 +7,31 @@ export class CrudController {
         try {
             const resourceParam = req.params.resource;
             const resource = Array.isArray(resourceParam) ? resourceParam[0] : resourceParam;
-            const { _fields } = req.query;
+            const { _page, _limit, _sort, _order, _fields, q, ...restQuery } = req.query;
 
-            let fields: string[] | undefined = undefined;
+            //Lay danh sach cot chon loc theo _field
+            let fields: string[] | undefined;
             if (typeof _fields === 'string') {
                 fields = _fields.split(',').map((f) => f.trim());
             }
 
-            const data = await crudService.findAll(resource, fields);
-            return res.status(200).json(data);
+            const options: QueryOptions = {
+                _page: _page ? parseInt(_page as string, 10) : undefined,
+                _limit: _limit ? parseInt(_limit as string, 10) : undefined,
+                _sort: typeof _sort === 'string' ? _sort : undefined,
+                _order: _order === 'desc' ? 'desc' : 'asc',
+                _fields: fields,
+                q: typeof q === 'string' ? q : undefined,
+                filters: restQuery,
+            }
 
+            const { data, totalCount } = await crudService.findAll(resource, options);
+
+            //Set Header
+            res.setHeader('X-Total-Count',totalCount.toString());
+            res.setHeader('Access-Control-Expose-Headers', 'X-Total-Count');
+
+            return res.status(200).json(data);
         } catch (error: any) {
             return res.status(500).json({ error: error.message || 'Server Error' });
         }

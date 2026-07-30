@@ -1,29 +1,113 @@
 import { db } from '../config/data-source';
 import { schemaService } from './schema.service';
 
-export class CrudService {
-  // 1. GET ALL (Hỗ trợ _fields)
-  async findAll(tableName: string, fields?: string[]) {
-    const validColumns = schemaService.getValidColumns(tableName);
-    let selectedFields = validColumns;
+export interface QueryOptions {
+  _page?: number;
+  _limit?: number;
+  _sort?: string;
+  _order?: 'asc' | 'desc';
+  _fields?: string[];
+  q?: string;
+  filters?: Record<string, any>;
 
-    // Lọc whitelist các cột người dùng muốn lấy
-    if (fields && fields.length > 0) {
-      selectedFields = fields.filter((f) => validColumns.includes(f));
-      if (selectedFields.length === 0) {
-        selectedFields = validColumns;
+}
+
+export class CrudService {
+  // GET ALL (Hỗ trợ _fields)
+  async findAll(tableName: string, options: QueryOptions = {}) {
+    const validColumns = schemaService.getValidColumns(tableName);
+    const tableDef = schemaService.getTableDef(tableName);
+
+    //Filter By _field
+    let selectedFields = validColumns;
+    if(options._fields && options._fields.length > 0){
+      selectedFields = options._fields.filter((f) => validColumns.includes(f));
+      if(selectedFields.length === 0) selectedFields = validColumns;
+    }
+
+    const query = db(tableName);
+
+    //_Filtering (_gte, _lte, _ne, _like, & exact match)
+    if(options.filters){
+      for(const [key, rawValue] of Object.entries(options.filters)){
+        if(rawValue == undefined || rawValue === '') continue;
+
+        let field = key;
+        let operator = '=';
+        let val = rawValue;
+
+        if(key.endsWith('_gte')){
+          field = key.slice(0, -4);
+          operator = '>=';
+        }else if(key.endsWith('_lte')){
+          field = key.slice(0, -4);
+          operator = '<=';
+        }else if(key.endsWith('_ne')){
+          field = key.slice(0, -3);
+          operator = "<>";
+        }else if(key.endsWith("_like")){
+          field = key.slice(0, -5);
+          operator = 'ILIKE';
+          val = `%${rawValue}%`;
+        }
+
+        //Lay cot chi thuoc whitelist
+        if(validColumns.includes(field)){
+          query.where(field, operator, val);
+        }
       }
     }
 
-    return await db(tableName).select(selectedFields);
+    if(options.q && tableDef){
+      const textColumns = tableDef.columns.filter((col) => ['string','text','enum'].includes(col.type))
+      .map((col) => col.name);
+
+      if(textColumns.length > 0){
+        const keyword = `%${options.q}%`;
+        query.where((builder) => {
+          textColumns.forEach((col, index) => {
+            if(index === 0){
+              builder.where(col, 'ILIKE', keyword);
+            }else{
+              builder.orWhere(col, 'ILIKE', keyword);
+            }
+          });
+        });
+      }
+    }
+
+    //Dem so ban ghi khop truoc khi phan trang
+    const countResult = await query.clone().count('* as total').first();
+    const totalCount = countResult ? parseInt(countResult.total as string, 10) : 0;
+    
+    if(options._sort && validColumns.includes(options._sort)){
+      const order = options._order?.toLowerCase() === 'desc' ? 'desc' : 'asc';
+      query.orderBy(options._sort, order);
+    }
+
+    //Pagination
+    if(options._limit){
+      const limit = Math.max(1, options._limit);
+      const page = options._page ? Math.max(1, options._page) : 1;
+      const offset = (page - 1) * limit;
+
+      query.limit(limit).offset(offset);
+    }
+
+    const data = await query.select(selectedFields);
+
+    return {
+      data,
+      totalCount
+    };
   }
 
-  // 2. GET BY ID
+  // GET BY ID
   async findById(tableName: string, id: string) {
     return await db(tableName).where({ id }).first();
   }
 
-  // 3. POST (Create)
+  // POST (Create)
   async create(tableName: string, data: Record<string, any>) {
     const validColumns = schemaService.getValidColumns(tableName);
     const filteredData: Record<string, any> = {};
@@ -39,7 +123,7 @@ export class CrudService {
     return createdRecord;
   }
 
-  // 4. PUT (Full Update) - Ghi đè toàn bộ dữ liệu ngoại trừ ID
+  // PUT (Full Update) - Ghi đè toàn bộ dữ liệu ngoại trừ ID
   async updatePut(tableName: string, id: string, data: Record<string, any>) {
     const tableDef = schemaService.getTableDef(tableName);
     if (!tableDef) return null;
@@ -64,7 +148,7 @@ export class CrudService {
     return updatedRecord || null;
   }
 
-  // 5. PATCH (Partial Update) - Chỉ cập nhật các field được gửi lên
+  // PATCH (Partial Update) - Chỉ cập nhật các field được gửi lên
   async updatePatch(tableName: string, id: string, data: Record<string, any>) {
     const validColumns = schemaService.getValidColumns(tableName);
     const updateData: Record<string, any> = {};
@@ -84,7 +168,7 @@ export class CrudService {
     return updatedRecord || null;
   }
 
-  // 6. DELETE
+  // DELETE
   async delete(tableName: string, id: string) {
     const deletedCount = await db(tableName).where({ id }).del();
     return deletedCount > 0;

@@ -46,7 +46,7 @@ export async function runAutoMigration(): Promise<void> {
         for (const col of table.columns) {
           let colBuilder;
 
-          // 1. Áp dụng kiểu dữ liệu với Knex Builder
+          // Áp dụng kiểu dữ liệu với Knex Builder
           switch (col.type) {
             case 'uuid':
               colBuilder = tableBuilder.uuid(col.name);
@@ -73,24 +73,24 @@ export async function runAutoMigration(): Promise<void> {
               colBuilder = tableBuilder.string(col.name, 255);
           }
 
-          // 2. Khóa chính (Primary Key)
+          // Khóa chính (Primary Key)
           if (col.primary) {
             colBuilder.primary();
           }
 
-          // 3. Nullable
+          // Nullable
           if (col.nullable === false) {
             colBuilder.notNullable();
           } else if (col.nullable === true) {
             colBuilder.nullable();
           }
 
-          // 4. Unique Constraint
+          // Unique Constraint
           if (col.unique) {
             colBuilder.unique();
           }
 
-          // 5. Giá trị mặc định (Default Value)
+          // Giá trị mặc định (Default Value)
           if (col.default) {
             if (col.default === 'gen_random_uuid()') {
               colBuilder.defaultTo(db.raw('gen_random_uuid()'));
@@ -101,7 +101,7 @@ export async function runAutoMigration(): Promise<void> {
             }
           }
 
-          // 6. Khóa ngoại (Foreign Key)
+          // Khóa ngoại (Foreign Key)
           if (col.foreignKey) {
             const fk = colBuilder.references(col.foreignKey.column).inTable(col.foreignKey.table);
             if (col.foreignKey.onDelete) {
@@ -115,6 +115,4 @@ export async function runAutoMigration(): Promise<void> {
       console.log(`[Auto-Migration] Bảng "${table.name}" đã tồn tại, bỏ qua.`);
     }
   }
-
-  
 }
