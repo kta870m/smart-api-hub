@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { db } from './config/data-source';
 import crudRouter from './routes/crud.route';
+import authRouter from './routes/auth.route';
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.get('/health', async (req: Request, res: Response) => {
   }
 });
 
-app.use('/', crudRouter)
+app.use('/auth', authRouter);
+app.use('/', crudRouter);
 
 export default app;
