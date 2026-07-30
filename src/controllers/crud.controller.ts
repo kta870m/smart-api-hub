@@ -1,26 +1,35 @@
 import { Request, Response } from "express";
 import { crudService, QueryOptions } from "../services/crud.service";
-import { error } from "node:console";
+
 
 export class CrudController {
+    private parseStringArray(param: any):string[] {
+        if(!param) return [];
+        if(Array.isArray(param)){
+            return param.flatMap((p) => String(p).split(',')).map((s) => s.trim());
+        }
+        if(typeof param === 'string'){
+            return param.split(',').map((s) => s.trim());
+        }
+
+        return [];
+    }
+
     async getAll(req: Request, res: Response) {
         try {
             const resourceParam = req.params.resource;
             const resource = Array.isArray(resourceParam) ? resourceParam[0] : resourceParam;
-            const { _page, _limit, _sort, _order, _fields, q, ...restQuery } = req.query;
+            const { _page, _limit, _sort, _order, _fields,_expand, _embed,  q, ...restQuery } = req.query;
 
-            //Lay danh sach cot chon loc theo _field
-            let fields: string[] | undefined;
-            if (typeof _fields === 'string') {
-                fields = _fields.split(',').map((f) => f.trim());
-            }
 
             const options: QueryOptions = {
                 _page: _page ? parseInt(_page as string, 10) : undefined,
                 _limit: _limit ? parseInt(_limit as string, 10) : undefined,
                 _sort: typeof _sort === 'string' ? _sort : undefined,
                 _order: _order === 'desc' ? 'desc' : 'asc',
-                _fields: fields,
+                _fields: this.parseStringArray(_fields),
+                _expand: this.parseStringArray(_expand),
+                _embed: this.parseStringArray(_embed),
                 q: typeof q === 'string' ? q : undefined,
                 filters: restQuery,
             }

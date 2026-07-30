@@ -25,7 +25,7 @@ export async function seed() {
       ])
       .returning('*');
 
-    // 3. Mock Categories
+    //  Mock Categories
     const [catPhone, catLaptop, catAudio] = await db('categories')
       .insert([
         {
@@ -43,7 +43,7 @@ export async function seed() {
       ])
       .returning('*');
 
-    // 4. Mock Products (Khớp với schema đã tạo)
+    // Mock Products (Khớp với schema đã tạo)
     const products = await db('products')
       .insert([
         {

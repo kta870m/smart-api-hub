@@ -1,5 +1,7 @@
+import { record } from 'zod';
 import { db } from '../config/data-source';
 import { schemaService } from './schema.service';
+import { table } from 'node:console';
 
 export interface QueryOptions {
   _page?: number;
@@ -7,12 +9,76 @@ export interface QueryOptions {
   _sort?: string;
   _order?: 'asc' | 'desc';
   _fields?: string[];
+  _expand?: string[];
+  _embed?: string[];
   q?: string;
   filters?: Record<string, any>;
 
 }
 
 export class CrudService {
+  // Query N + 1 expand parent
+  private async handleExpand(tableName: string, records: any[], embedTarget: string[]){
+    if(!records || records.length === 0 || !embedTarget.length) return;
+
+    for(const target of embedTarget){
+      const rel = schemaService.findForeignKeyTo(tableName, target);
+      if(!rel) return;
+
+      //Gom id cua bang cha thanh 1 mang duy nhat
+      const parentIds = Array.from(
+        new Set(records.map((r) => r[rel.fkColumn]).filter(Boolean))
+      );
+
+      if(parentIds.length === 0) continue;
+
+      //Chay duy nhat 1 query Batch
+      const parents = await db(rel.parentTable).whereIn(rel.parentColumn, parentIds);
+      const parentMap = new Map();
+      parents.forEach((p) => parentMap.set(p[rel.parentColumn], p));
+      
+      records.forEach((record) => {
+        const parentObj = parentMap.get(record[rel.fkColumn]) || null;
+        record[target] = parentObj;
+      });
+    }
+  }
+
+  //Query N + 1 expand child
+  private async handleEmbed(tableName: string, records: any[],embedTargets: string[]){
+    if(!records || records.length === 0 || !embedTargets.length) return;
+
+    for(const target of embedTargets){
+      const rel = schemaService.findForeginKeyFrom(target, tableName);
+      if(!rel) continue;
+
+      //Group Id in an array
+      const parentIds = Array.from(
+        new Set(records.map((r) => r[rel.parentColumn]).filter(Boolean))
+      );
+
+      if(parentIds.length === 0) continue;
+
+      //Lay du lieu con
+      const children = await db(rel.childTable).whereIn(rel.fkColumn, parentIds);
+
+      const childGroupMap = new Map<any, any[]>();
+      children.forEach((c) => {
+        const key = c[rel.fkColumn];
+        if(!childGroupMap.has(key)){
+            childGroupMap.set(key, []);
+        }
+        childGroupMap.get(key)!.push(c);
+      });
+
+      records.forEach((record) => {
+        const childrenList = childGroupMap.get(record[rel.parentColumn]) || [];
+        record[target] = childrenList;
+      })
+    }
+  }
+
+
   // GET ALL (Hỗ trợ _fields)
   async findAll(tableName: string, options: QueryOptions = {}) {
     const validColumns = schemaService.getValidColumns(tableName);
@@ -96,6 +162,13 @@ export class CrudService {
 
     const data = await query.select(selectedFields);
 
+    if(options._expand && options._expand.length > 0){
+      await this.handleExpand(tableName, data, options._expand);
+    }
+    if(options._embed && options._embed.length > 0){
+      await this.handleEmbed(tableName,data,options._embed);
+    }
+
     return {
       data,
       totalCount
@@ -103,8 +176,19 @@ export class CrudService {
   }
 
   // GET BY ID
-  async findById(tableName: string, id: string) {
-    return await db(tableName).where({ id }).first();
+  async findById(tableName: string, id: string, options: {_expand?: string[], _embed?: string[]} = {}) {
+    const record = await db(tableName).where({id}).first();
+    if(!record) return null;
+
+    const data = [record];
+    if(options._expand && options._expand.length > 0){
+      await this.handleExpand(tableName, data, options._expand);
+    }
+    if(options._embed && options._embed.length > 0){
+      await this.handleEmbed(tableName, data, options._embed);
+    }
+
+    return data[0];
   }
 
   // POST (Create)

@@ -8,6 +8,11 @@ export interface ColumnDef {
     unique?: boolean;
     nullable?: boolean;
     default?: string;
+    foreignKey?:{
+        table: string,
+        column: string,
+        onDelete?: string
+    };
 }
 
 export interface TableDef {
@@ -52,6 +57,60 @@ class SchemaService {
     public getValidColumns(tableName: string): string[]{
         const table = this.getTableDef(tableName);
         return table ? table.columns.map((c) => c.name) : [];
+    }
+
+    //chuan hoa ten bang
+    private normalizeName(name: string): string{
+        return name.toLowerCase().trim().replace(/s$/, '');
+    }
+
+    //Tim khoa ngoai cho den bang cha
+    public findForeignKeyTo(sourceTableName: string, parentTarget: string){
+        const sourceTable = this.getTableDef(sourceTableName);
+
+        if(!sourceTable) return null;
+
+        const normTarget = this.normalizeName(parentTarget);
+
+        for(const col of sourceTable.columns){
+            if(col.foreignKey){
+                const normFkTable = this.normalizeName(col.foreignKey.table);
+                if(normFkTable === normTarget){
+                    return {
+                        fkColumn: col.name,
+                        parentTable: col.foreignKey.table,
+                        parentColumn: col.foreignKey.column || 'id'
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    //Tim khoa ngoai tu con tro len bang hien tai
+    public findForeginKeyFrom(childTarget: string, parentTableName: string){
+        const schema = this.getSchema();
+        const normChild = this.normalizeName(childTarget);
+        const normParent = this.normalizeName(parentTableName);
+
+        const childTable = schema.tables.find((t) => this.normalizeName(t.name) === normChild);
+
+        if(!childTable) return null;
+
+        for(const col of childTable.columns){
+            if(col.foreignKey){
+                const normFkTable = this.normalizeName(col.foreignKey.table);
+                if(normFkTable === normParent){
+                    return {
+                        childTable: childTable.name,
+                        fkColumn: col.name,
+                        parentColumn: col.foreignKey.column || 'id'
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 }
 
