@@ -13,7 +13,7 @@ export class AuthController {
 
             const existingUser = await db('users').where({email}).first();
             if(existingUser){
-                return res.status(404).json({ email: 'Email này đã được sử dụng' });
+                return res.status(409).json({ error: 'Email này đã được sử dụng' });
             }
 
             //Ma hoa mat khau
