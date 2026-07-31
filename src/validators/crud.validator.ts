@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 /**
  * Schema validate cho POST /:resource (Create)
- * NOTE: Zod v4 – .refine() cần truyền đủ { message } ở tham số 2
  */
 export const createSchema = z
   .record(z.string(), z.unknown())

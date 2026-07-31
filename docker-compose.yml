@@ -11,9 +11,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d mydb"]
-      interval: 3s
+      interval: 5s
       timeout: 5s
       retries: 10
       start_period: 10s
@@ -27,8 +29,18 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    environment:
+      DB_HOST: postgres
     ports:
       - "3000:3000"
+    volumes:
+      - ./schema.json:/app/schema.json:ro
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   postgres_data:

@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 /**
  * Schema validate cho POST /auth/register
- * NOTE: Zod v4 đã bỏ 'required_error' và 'errorMap' – dùng 'message' thay thế
  */
 export const registerSchema = z.object({
   email: z
