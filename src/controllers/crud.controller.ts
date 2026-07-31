@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { crudService, QueryOptions } from "../services/crud.service";
+import { auditService } from "../services/audit.service";
 
 
 export class CrudController {
@@ -70,6 +71,16 @@ export class CrudController {
             const resourceParam = req.params.resource;
             const resource = Array.isArray(resourceParam) ? resourceParam[0] : resourceParam;
             const created = await crudService.create(resource, req.body);
+
+            if(created && created.id){
+                auditService.log({
+                    user_id: req.user?.id,
+                    action: 'CREATE',
+                    resource_name: resource,
+                    record_id: created.id.toString()
+                });
+            }
+
             return res.status(201).json(created);
         } catch (error: any) {
             return res.status(500).json({ error: error.message || 'Server Error' });
@@ -89,6 +100,14 @@ export class CrudController {
             if (!updated) {
                 return res.status(404).json({ error: `Không tìm thấy bản ghi với id: ${id}` });
             }
+
+            auditService.log({
+                user_id: req.user?.id,
+                action: 'UPDATE',
+                resource_name: resource,
+                record_id: id,
+            })
+
             return res.status(200).json(updated);
         } catch (error: any) {
             return res.status(500).json({ error: error.message || 'Server error' });
@@ -109,6 +128,13 @@ export class CrudController {
                 return res.status(404).json({ error: `Không tìm thấy bản ghi với id: ${id}` });
             }
 
+            auditService.log({
+                user_id: req.user?.id,
+                action: 'UPDATE',
+                resource_name: resource,
+                record_id: id,
+            })
+
             return res.status(200).json(updated);
         } catch (error: any) {
             return res.status(500).json({ error: error.message || 'Server error' });
@@ -127,6 +153,14 @@ export class CrudController {
             if (!isDeleted) {
                 return res.status(404).json({ error: `Không tìm thấy bản ghi với id: ${id}` });
             }
+
+            auditService.log({
+                user_id: req.user?.id,
+                action: 'DELETE',
+                resource_name: resource,
+                record_id: id
+            })
+
             return res.status(200).json({ message: 'Xóa bản ghi thành công.' });
         } catch (error: any) {
             return res.status(500).json({ error: error.message || 'Server error' });

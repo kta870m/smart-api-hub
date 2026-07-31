@@ -6,6 +6,7 @@ import { swaggerSpec } from './config/swagger';
 import crudRouter from './routes/crud.route';
 import authRouter from './routes/auth.route';
 import { globalErrorHandler } from './middlewares/error.middleware';
+import { auditService } from './services/audit.service';
 
 const app = express();
 
@@ -42,6 +43,8 @@ app.get('/health', async (req: Request, res: Response) => {
     });
   }
 });
+
+auditService.initTable();
 
 app.use('/auth', authRouter);
 app.use('/', crudRouter);

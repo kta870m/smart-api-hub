@@ -7,7 +7,6 @@ import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
  * Bắt tất cả lỗi được throw hoặc pass qua next(err) từ các route/middleware khác.
  * Luôn trả về response chuẩn: { "error": "message" }
  *
- * NOTE: Zod v4 dùng .issues thay vì .errors
  */
 export function globalErrorHandler(
   err: any,
