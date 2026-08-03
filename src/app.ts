@@ -7,11 +7,13 @@ import crudRouter from './routes/crud.route';
 import authRouter from './routes/auth.route';
 import { globalErrorHandler } from './middlewares/error.middleware';
 import { auditService } from './services/audit.service';
+import { customRateLimiter } from './middlewares/rate-limiter.middleware';
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(customRateLimiter);
 
 // ─── Swagger UI ───────────────────────────────
 // Giao diện: http://localhost:3000/api-docs
@@ -52,6 +54,8 @@ app.use('/', crudRouter);
 app.use((req: Request, res: Response) => {
   res.status(404).json({ error: `Route '${req.method} ${req.path}' không tồn tại.` });
 });
+
+
 
 app.use(globalErrorHandler);
 
